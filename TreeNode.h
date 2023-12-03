@@ -7,8 +7,9 @@
 
 #include <queue>
 #include <istream>
+#include <ostream>
 #include <sstream>
-#include <queue>
+#include <vector>
 
 struct TreeNode {
     int val;
@@ -20,17 +21,34 @@ struct TreeNode {
     explicit TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
 
     explicit TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+
+    virtual ~TreeNode() {
+        delete this->left;
+        delete this->right;
+    }
 };
 
-#define NODE_NULL "null"
+#define TREE_BEGIN '['
+#define TREE_END ']'
+#define TREE_NODE_NULL "null"
+#define TREE_NODE_DELIMITER ','
 
+/**
+ * Read tree from input stream.
+ * Expected format "[5,3,6,2,4,null,7]"
+ * @param is
+ * @param root
+ * @return
+ */
 std::istream &operator>>(std::istream &is, TreeNode *&root) {
     std::string payload;
+    is >> payload;
 
-    while (true) {
-        std::getline(is, payload);
-        if (!payload.empty()) break;
-    }
+    if (payload.front() != TREE_BEGIN || payload.back() != TREE_END)
+        throw std::logic_error("invalid tree input");
+
+    payload.erase(0, 1);               // trim [
+    payload.erase(payload.size() - 1); // trim ]
 
     std::stringstream ss;
     ss << payload;
@@ -39,8 +57,8 @@ std::istream &operator>>(std::istream &is, TreeNode *&root) {
     nodesQ.push(&root);
 
     std::string chunk;
-    while (std::getline(ss, chunk, ' ')) {
-        if (NODE_NULL == chunk) {
+    while (std::getline(ss, chunk, TREE_NODE_DELIMITER)) {
+        if (TREE_NODE_NULL == chunk) {
             *nodesQ.front() = nullptr;
             nodesQ.pop();
             continue;
@@ -59,43 +77,42 @@ std::istream &operator>>(std::istream &is, TreeNode *&root) {
     return is;
 }
 
-void readNode(std::istream &is, TreeNode **nodePP) {
-    std::string value;
-    is >> value;
-    if ("null" == value) {
-        *nodePP = nullptr;
-        return;
+std::ostream &operator<<(std::ostream &os, const TreeNode *node) {
+    if (nullptr == node) {
+        os << TREE_BEGIN << TREE_END;
+        return os;
     }
 
-    *nodePP = new TreeNode(atoi(value.c_str()));
-}
+    std::queue<const TreeNode *> qqq;
+    qqq.push(node);
 
-TreeNode *readTree(std::istream &is, size_t length) {
-    if (0 == length)
-        return nullptr;
+    std::vector<std::string> values;
 
-    TreeNode *root = nullptr;
+    while (!qqq.empty()) {
+        const auto *ptr = qqq.front();
+        qqq.pop();
 
-    std::queue<TreeNode **> q;
-    q.push(&root);
+        if (nullptr == ptr) {
+            values.emplace_back(TREE_NODE_NULL);
+        } else {
+            values.emplace_back(std::to_string(ptr->val));
 
-    for (size_t idx = 0; idx < length; ++idx) {
-        auto **node = q.front();
-        q.pop();
-
-        readNode(is, node);
-        if (nullptr == *node)
-            continue;
-
-        q.push(&(*node)->left);
-        q.push(&(*node)->right);
+            if (nullptr != ptr->left || nullptr != ptr->right) {
+                qqq.push(ptr->left);
+                qqq.push(ptr->right);
+            }
+        }
     }
 
-    return root;
-}
+    os << TREE_BEGIN;
+    for (size_t idx = 0; idx < values.size(); ++idx) {
+        os << values[idx];
+        if (idx < values.size() - 1)
+            os << TREE_NODE_DELIMITER;
+    }
+    os << TREE_END;
 
-TreeNode *readTree(size_t length) {
-    return readTree(std::cin, length);
+    return os;
 }
 
 #endif //LEETCODE_TRAINING_TREENODE_H

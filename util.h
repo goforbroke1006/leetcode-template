@@ -7,36 +7,51 @@
 
 #include <istream>
 #include <ostream>
+#include <sstream>
 #include <vector>
 #include <list>
 #include <iomanip>
 
+#define LIST_BEGIN '['
+#define LIST_END ']'
+#define LIST_DELIMITER ','
+
 /**
  * Reading any vector.
  * Usage:
- *   std::vector<int> numbers;
+ *   std::vector<T> vector;
  *   std::cin >> number;
  * Input should be like:
- *   5
- *   0 1 2 3 4
- * where is "5" is expected length, and 0 1 2 3 4 - vector's elements.
+ *   [3,2,3,1,2,4,5,5,6]
  *
  * @tparam T
  * @param is
- * @param vecOut
+ * @param out
  * @return
  */
 template<class T>
-std::istream &operator>>(std::istream &is, std::vector<T> &vecOut) {
-    size_t length;
-    is >> length;
+std::istream &operator>>(std::istream &is, std::vector<T> &out) {
+    std::string payload;
+    is >> payload;
 
-    vecOut.reserve(length);
+    if (payload.front() != LIST_BEGIN || payload.back() != LIST_END)
+        throw std::logic_error("invalid vector input");
 
-    for (size_t idx = 0; idx < length; ++idx) {
+    payload.erase(0, 1);               // trim [
+    payload.erase(payload.size() - 1); // trim ]
+
+    std::stringstream ss;
+    ss << payload;
+
+    std::string str;
+    while (std::getline(ss, str, LIST_DELIMITER)) {
+        std::stringstream parsingSS;
+        parsingSS << str;
+
         T value;
-        is >> value;
-        vecOut.emplace_back(value);
+        parsingSS >> value;
+
+        out.emplace_back(value);
     }
 
     return is;
